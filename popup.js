@@ -13,7 +13,29 @@ function automateTikTok(groupIds) {
   (async () => {
     console.log("Starting automation...");
 
-    const adGroupsInput = document.querySelector("input[placeholder='All']");
+    // pierce all shadow doms
+    function findInShadowRoots(selector, root = document) {
+      const element = root.querySelector(selector);
+      if (element) {
+        return element;
+      }
+    
+      // if not found, look for shadow roots in the current root
+      const shadowHosts = root.querySelectorAll("*");
+      for (const host of shadowHosts) {
+        if (host.shadowRoot) {
+          const found = findInShadowRoots(selector, host.shadowRoot);
+          if (found) {
+            return found;
+          }
+        }
+      }
+    
+      return null;
+    }
+    
+    const adGroupsInput = findInShadowRoots("input[placeholder='Search']");
+    
     if (!adGroupsInput) {
       alert("Ad groups input field not found");
       return;
@@ -21,22 +43,21 @@ function automateTikTok(groupIds) {
     adGroupsInput.click();
 
     for (const groupId of groupIds) {
-      const searchInput = document.querySelector(
-        "input[placeholder='Please enter']"
-      );
-      searchInput.focus();
-      searchInput.value = ""; // Clear the input field
-      searchInput.dispatchEvent(new Event("input", { bubbles: true })); // Trigger input event
+      adGroupsInput.focus();
+      adGroupsInput.value = ""; // Clear the input field
+      adGroupsInput.dispatchEvent(new Event("input", { bubbles: true })); // Trigger input event
 
       for (const char of groupId) {
-        searchInput.value += char;
-        searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+        adGroupsInput.value += char;
+        adGroupsInput.dispatchEvent(new Event("input", { bubbles: true }));
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
-      const firstResult = document.querySelector(
-        "div[data-testid='source-in-new-engagement-0-mst-p-0']"
+      const siblingDiv = findInShadowRoots(
+        "div[id='slot-pop-{}'][slot='content']".replace("{}", groupId),
       );
+      const parent = siblingDiv.parentElement;
+      const firstResult = parent.querySelector("li[class='dropdown-menu__list-item']");
       console.log("first result");
       console.log(firstResult);
       firstResult.focus();
